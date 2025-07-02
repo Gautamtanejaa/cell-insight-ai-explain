@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  bloodcell-ai-backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./models:/app/models
+      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - ENVIRONMENT=development
+    networks:
+      - bloodcell-network
+    restart: unless-stopped
+    
+  # Optional: PostgreSQL for production
+  # postgres:
+  #   image: postgres:15
+  #   environment:
+  #     POSTGRES_DB: bloodcell_ai
+  #     POSTGRES_USER: admin
+  #     POSTGRES_PASSWORD: secure_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - bloodcell-network
+  #   restart: unless-stopped
+
+networks:
+  bloodcell-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

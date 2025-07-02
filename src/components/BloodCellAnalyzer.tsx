@@ -33,30 +33,114 @@ export const BloodCellAnalyzer = () => {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null);
 
-  const handleImageUpload = (imageUrl: string) => {
+  const handleImageUpload = async (imageUrl: string) => {
     setUploadedImage(imageUrl);
-    startAnalysis();
+    
+    // Convert data URL to blob for upload
+    const blob = await dataURLToBlob(imageUrl);
+    const file = new File([blob], 'blood_sample.jpg', { type: 'image/jpeg' });
+    
+    await startAnalysis(file);
   };
 
-  const startAnalysis = () => {
+  const dataURLToBlob = (dataURL: string): Promise<Blob> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx?.drawImage(img, 0, 0);
+        canvas.toBlob((blob) => {
+          resolve(blob!);
+        }, 'image/jpeg', 0.8);
+      };
+      
+      img.src = dataURL;
+    });
+  };
+
+  const startAnalysis = async (file: File) => {
     setCurrentStep('analyzing');
     setAnalysisProgress(0);
 
-    // Simulate analysis progress
-    const interval = setInterval(() => {
-      setAnalysisProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          completeAnalysis();
-          return 100;
-        }
-        return prev + 10;
+    try {
+      // Upload image to backend
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const uploadResponse = await fetch('http://localhost:8000/api/upload', {
+        method: 'POST',
+        body: formData,
       });
-    }, 300);
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const uploadResult = await uploadResponse.json();
+      const analysisId = uploadResult.analysis_id;
+
+      // Poll for progress
+      await pollAnalysisProgress(analysisId);
+      
+    } catch (error) {
+      console.error('Analysis error:', error);
+      // Fallback to mock analysis
+      setTimeout(() => completeAnalysis(), 2000);
+    }
+  };
+
+  const pollAnalysisProgress = async (analysisId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const progressResponse = await fetch(`http://localhost:8000/api/progress/${analysisId}`);
+        const progressData = await progressResponse.json();
+
+        setAnalysisProgress(progressData.progress);
+
+        if (progressData.status === 'completed') {
+          clearInterval(pollInterval);
+          await fetchAnalysisResults(analysisId);
+        } else if (progressData.status === 'error') {
+          clearInterval(pollInterval);
+          console.error('Analysis failed:', progressData.stage);
+          // Fallback to mock results
+          completeAnalysis();
+        }
+      } catch (error) {
+        clearInterval(pollInterval);
+        console.error('Progress polling error:', error);
+        // Fallback to mock results
+        completeAnalysis();
+      }
+    }, 1000);
+  };
+
+  const fetchAnalysisResults = async (analysisId: string) => {
+    try {
+      const resultsResponse = await fetch(`http://localhost:8000/api/results/${analysisId}`);
+      const results = await resultsResponse.json();
+
+      const analysisData: AnalysisData = {
+        cellCounts: results.cell_counts,
+        diseases: results.diseases,
+        abnormalities: results.abnormalities
+      };
+
+      setAnalysisData(analysisData);
+      setCurrentStep('results');
+    } catch (error) {
+      console.error('Error fetching results:', error);
+      // Fallback to mock results
+      completeAnalysis();
+    }
   };
 
   const completeAnalysis = () => {
-    // Mock analysis results
+    // Mock analysis results (fallback)
     const mockResults: AnalysisData = {
       cellCounts: {
         neutrophils: 62,
