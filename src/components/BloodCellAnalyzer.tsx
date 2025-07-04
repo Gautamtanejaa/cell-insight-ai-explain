@@ -10,6 +10,7 @@ import { DiseaseDetection } from './DiseaseDetection';
 import { MedicalExplanation } from './MedicalExplanation';
 
 interface AnalysisData {
+  analysisId: string;
   cellCounts: {
     neutrophils: number;
     lymphocytes: number;
@@ -88,8 +89,9 @@ export const BloodCellAnalyzer = () => {
       
     } catch (error) {
       console.error('Analysis error:', error);
-      // Fallback to mock analysis
-      setTimeout(() => completeAnalysis(), 2000);
+      setCurrentStep('upload');
+      // Show error message to user
+      alert('Failed to analyze image. Please try again.');
     }
   };
 
@@ -107,14 +109,14 @@ export const BloodCellAnalyzer = () => {
         } else if (progressData.status === 'error') {
           clearInterval(pollInterval);
           console.error('Analysis failed:', progressData.stage);
-          // Fallback to mock results
-          completeAnalysis();
+          setCurrentStep('upload');
+          alert('Analysis failed: ' + progressData.stage);
         }
       } catch (error) {
         clearInterval(pollInterval);
         console.error('Progress polling error:', error);
-        // Fallback to mock results
-        completeAnalysis();
+        setCurrentStep('upload');
+        alert('Connection error. Please check if backend is running.');
       }
     }, 1000);
   };
@@ -125,6 +127,7 @@ export const BloodCellAnalyzer = () => {
       const results = await resultsResponse.json();
 
       const analysisData: AnalysisData = {
+        analysisId: analysisId,
         cellCounts: results.cell_counts,
         diseases: results.diseases,
         abnormalities: results.abnormalities
@@ -134,38 +137,11 @@ export const BloodCellAnalyzer = () => {
       setCurrentStep('results');
     } catch (error) {
       console.error('Error fetching results:', error);
-      // Fallback to mock results
-      completeAnalysis();
+      setCurrentStep('upload');
+      alert('Failed to fetch results. Please try again.');
     }
   };
 
-  const completeAnalysis = () => {
-    // Mock analysis results (fallback)
-    const mockResults: AnalysisData = {
-      cellCounts: {
-        neutrophils: 62,
-        lymphocytes: 28,
-        monocytes: 6,
-        eosinophils: 3,
-        basophils: 1,
-        platelets: 350000,
-        rbcs: 4800000
-      },
-      diseases: [
-        { name: 'Bacterial Infection', confidence: 78, severity: 'medium' },
-        { name: 'Mild Anemia', confidence: 45, severity: 'low' },
-        { name: 'Leukocytosis', confidence: 62, severity: 'medium' }
-      ],
-      abnormalities: [
-        'Elevated neutrophil count',
-        'Slightly reduced lymphocyte percentage',
-        'Normal platelet morphology'
-      ]
-    };
-
-    setAnalysisData(mockResults);
-    setCurrentStep('results');
-  };
 
   const resetAnalysis = () => {
     setCurrentStep('upload');
