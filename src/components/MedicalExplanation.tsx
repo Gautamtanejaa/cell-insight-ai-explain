@@ -37,6 +37,12 @@ export const MedicalExplanation: React.FC<MedicalExplanationProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [explanation, setExplanation] = useState('');
   const [followUpQuestion, setFollowUpQuestion] = useState('');
+  
+  // Reset explanation when analysisData changes (new analysis)
+  React.useEffect(() => {
+    setExplanation('');
+    setFollowUpQuestion('');
+  }, [analysisData.analysisId]);
   const { toast } = useToast();
 
   const generateExplanation = async () => {
