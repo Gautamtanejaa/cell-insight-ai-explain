@@ -12,7 +12,7 @@ class ImageProcessor:
     
     def __init__(self):
         self.target_size = (1024, 1024)
-        self.min_size = (512, 512)
+        self.min_size = (256, 256)
         
     async def preprocess_image(self, image_path: str) -> np.ndarray:
         """Preprocess blood smear image for analysis"""
