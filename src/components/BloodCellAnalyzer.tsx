@@ -83,6 +83,8 @@ export const BloodCellAnalyzer = () => {
 
       const uploadResult = await uploadResponse.json();
       const analysisId = uploadResult.analysis_id;
+      
+      console.log('New analysis started with ID:', analysisId);
 
       // Poll for progress
       await pollAnalysisProgress(analysisId);
@@ -132,6 +134,8 @@ export const BloodCellAnalyzer = () => {
         diseases: results.diseases,
         abnormalities: results.abnormalities
       };
+      
+      console.log('Analysis results fetched for ID:', analysisId, analysisData);
 
       setAnalysisData(analysisData);
       setCurrentStep('results');
@@ -144,6 +148,7 @@ export const BloodCellAnalyzer = () => {
 
 
   const resetAnalysis = () => {
+    console.log('Resetting analysis - clearing all state');
     setCurrentStep('upload');
     setUploadedImage(null);
     setAnalysisData(null);
